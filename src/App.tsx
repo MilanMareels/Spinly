@@ -4,7 +4,7 @@ import type { SearchResult, CollectionItem, ReleaseDetail, PaginationData } from
 
 export default function App() {
   // --- State Management ---
-  const [apiToken, setApiToken] = useState<string>("GhzcNyHfWQyyIrsJNNvLsuMvLfzsHkcFpkrEpHtE");
+  const apiToken = "GhzcNyHfWQyyIrsJNNvLsuMvLfzsHkcFpkrEpHtE";
   const [query, setQuery] = useState<string>("");
   const [searchType, setSearchType] = useState<string>("q");
 
@@ -17,7 +17,6 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("search");
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
   const [isScanning, setIsScanning] = useState<boolean>(false);
 
   // Pagination States
@@ -27,11 +26,11 @@ export default function App() {
 
   // Initial Load (Home Page Content)
   useEffect(() => {
-    if (apiToken || isDemoMode) {
+    if (apiToken) {
       // Voer een standaard zoekopdracht uit om de home page te vullen
       performSearch(query, 1, "q", true); // true = isInitialLoad
     }
-  }, [apiToken, isDemoMode]);
+  }, [apiToken]);
 
   // --- API Functies ---
 
@@ -43,31 +42,13 @@ export default function App() {
   };
 
   const performSearch = async (searchQuery: string, page: number = 1, type: string = searchType, isInitialLoad: boolean = false) => {
-    if ((!searchQuery && !isInitialLoad) || (!apiToken && !isDemoMode)) return;
+    if ((!searchQuery && !isInitialLoad) || !apiToken) return;
 
     setLoading(true);
     setError(null);
 
     // Reset results als het een nieuwe zoekopdracht is (geen paginering)
     if (page === 1) setResults([]);
-
-    if (isDemoMode) {
-      setTimeout(() => {
-        const demoResults = Array.from({ length: 25 }).map((_, i) => ({
-          id: 100 + i + page * 25,
-          title: searchQuery ? `Demo Resultaat ${i + 1} voor "${searchQuery}"` : `Trending Album ${i + 1} (Pagina ${page})`,
-          year: "2023",
-          label: ["Demo Records"],
-          thumb: "",
-          resource_url: "",
-        }));
-
-        setResults(demoResults);
-        setSearchPagination({ page, pages: 5, items: 125, per_page: 25 });
-        setLoading(false);
-      }, 800);
-      return;
-    }
 
     try {
       let url = `https://api.discogs.com/database/search?type=release&per_page=25&page=${page}`;
@@ -116,23 +97,6 @@ export default function App() {
 
   const fetchDetails = async (id: number, resourceUrl?: string) => {
     setLoading(true);
-    if (isDemoMode) {
-      setTimeout(() => {
-        setSelectedRelease({
-          id: id,
-          title: "Demo Album Details",
-          year: "2023",
-          artists: [{ name: "Demo Artist" }],
-          tracklist: [
-            { position: "A1", title: "Intro", duration: "2:30" },
-            { position: "A2", title: "Track 2", duration: "4:15" },
-          ],
-          notes: "Demo modus details.",
-        });
-        setLoading(false);
-      }, 500);
-      return;
-    }
 
     try {
       const url = resourceUrl || `https://api.discogs.com/releases/${id}`;
