@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Disc, Barcode, Plus, Trash2, X, Music, Info, Loader2, Camera, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { Search, Disc, Barcode, Plus, Trash2, X, Music, Info, Loader2, Camera, ChevronLeft, ChevronRight, Lock, CircleUser } from "lucide-react";
 import type { SearchResult, CollectionItem, ReleaseDetail, PaginationData } from "./types";
 
 export default function App() {
@@ -10,7 +10,6 @@ export default function App() {
 
   // Data States
   const [results, setResults] = useState<SearchResult[]>([]);
-  // DUMMY_COLLECTION is verwijderd, we starten met een lege array
   const [collection, setCollection] = useState<CollectionItem[]>([]);
   const [selectedRelease, setSelectedRelease] = useState<ReleaseDetail | null>(null);
 
@@ -473,41 +472,14 @@ export default function App() {
         <div className="max-w-5xl mx-auto space-y-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <h1 className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              <Disc className="text-blue-400" /> Vinyl Scout
+              <Disc className="text-blue-400" /> Spinly
             </h1>
 
             <div className="flex items-center gap-2 w-full md:w-auto">
-              {!apiToken && !isDemoMode ? (
-                <div className="flex gap-2 w-full">
-                  <input
-                    type="text"
-                    placeholder="Plak Discogs API Token..."
-                    value={apiToken}
-                    onChange={(e) => setApiToken(e.target.value)}
-                    className="bg-gray-800 border border-gray-700 text-sm rounded px-3 py-2 w-full md:w-64 focus:ring-2 focus:ring-blue-500 outline-none"
-                  />
-                  <button
-                    onClick={() => setIsDemoMode(true)}
-                    className="whitespace-nowrap px-3 py-2 text-xs bg-gray-800 border border-gray-600 hover:bg-gray-700 rounded text-gray-300"
-                  >
-                    Demo
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-xs text-green-400 bg-green-900/20 px-3 py-1.5 rounded-full border border-green-900">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                  {isDemoMode ? "Demo Modus" : "API Verbonden"}
-                  <button
-                    onClick={() => {
-                      setApiToken("");
-                      setIsDemoMode(false);
-                    }}
-                    className="ml-2 hover:text-white underline"
-                  >
-                    Reset
-                  </button>
-                </div>
-              )}
+              <button className="flex items-center gap-2 text-xs text-green-400 bg-green-900/20 px-3 py-1.5 rounded-full border border-green-900 hover:scale-105 transition ease-in-out">
+                <CircleUser />
+                <p>Account</p>
+              </button>
             </div>
           </div>
 
