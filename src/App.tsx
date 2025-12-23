@@ -1,94 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, Disc, Barcode, Plus, Trash2, X, Music, Info, Loader2, Camera, ChevronLeft, ChevronRight, Lock } from "lucide-react";
-
-// --- Interfaces & Types ---
-
-interface DiscogsImage {
-  uri: string;
-  type?: string;
-  resource_url?: string;
-}
-
-interface DiscogsArtist {
-  name: string;
-  id?: number;
-  resource_url?: string;
-}
-
-interface DiscogsLabel {
-  name: string;
-  catno?: string;
-  id?: number;
-}
-
-interface DiscogsTrack {
-  position: string;
-  title: string;
-  duration: string;
-}
-
-interface SearchResult {
-  id: number;
-  title: string;
-  year?: string;
-  thumb?: string;
-  cover_image?: string;
-  label?: string[];
-  catno?: string;
-  resource_url?: string;
-  type?: string;
-  labels?: DiscogsLabel[];
-}
-
-interface ReleaseDetail {
-  id: number;
-  title: string;
-  year?: string;
-  released?: string;
-  thumb?: string;
-  cover_image?: string;
-  images?: DiscogsImage[];
-  artists?: DiscogsArtist[];
-  labels?: DiscogsLabel[];
-  genres?: string[];
-  tracklist?: DiscogsTrack[];
-  uri?: string;
-  resource_url?: string;
-  notes?: string;
-  label?: string[];
-  catno?: string;
-}
-
-type CollectionItem = SearchResult | ReleaseDetail;
-
-interface PaginationData {
-  page: number;
-  pages: number;
-  items: number;
-  per_page: number;
-}
-
-// --- Dummy Data ---
-const DUMMY_COLLECTION: CollectionItem[] = [
-  {
-    id: 1,
-    title: "Pink Floyd - The Dark Side Of The Moon",
-    year: "1973",
-    thumb: "https://i.discogs.com/S-ff_8p1-s_m3B8q4a4q-dummy-image.jpg",
-    label: ["Harvest"],
-    catno: "SHVL 804",
-    cover_image: "",
-  },
-  {
-    id: 2,
-    title: "Daft Punk - Random Access Memories",
-    year: "2013",
-    thumb: "",
-    label: ["Columbia"],
-    catno: "88883716861",
-    cover_image: "",
-  },
-];
+import type { SearchResult, CollectionItem, ReleaseDetail, PaginationData } from "./types";
 
 export default function App() {
   // --- State Management ---
@@ -98,7 +10,8 @@ export default function App() {
 
   // Data States
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [collection, setCollection] = useState<CollectionItem[]>(DUMMY_COLLECTION);
+  // DUMMY_COLLECTION is verwijderd, we starten met een lege array
+  const [collection, setCollection] = useState<CollectionItem[]>([]);
   const [selectedRelease, setSelectedRelease] = useState<ReleaseDetail | null>(null);
 
   // UI States
@@ -285,9 +198,8 @@ export default function App() {
                 type: "LiveStream",
                 target: scannerRef.current,
                 constraints: {
-                  facingMode: "environment", // Probeer achtercamera
-                  // BELANGRIJK: Specifieke resoluties verwijderd voor betere mobiele ondersteuning!
-                  // Mobiele telefoons falen vaak als de gevraagde resolutie niet exact ondersteund wordt.
+                  facingMode: "environment",
+                  // Geen specifieke resolutie eisen om mobiele compatibiliteit te verhogen
                 },
               },
               locator: {
@@ -296,14 +208,13 @@ export default function App() {
               },
               numOfWorkers: 2,
               decoder: {
-                readers: ["ean_reader", "upc_reader"], // Vinyl barcodes zijn meestal EAN of UPC
+                readers: ["ean_reader", "upc_reader"],
               },
               locate: true,
             },
             (err: any) => {
               if (err) {
                 console.error("Quagga init error:", err);
-                // Betere error handling
                 if (err.name === "NotAllowedError" || err.message?.includes("permission")) {
                   setScanError("Toegang geweigerd. Sta camera toe in je instellingen.");
                 } else if (err.name === "OverconstrainedError") {
@@ -322,7 +233,6 @@ export default function App() {
           Quagga.onDetected((data: any) => {
             if (data && data.codeResult && data.codeResult.code) {
               const code = data.codeResult.code;
-              // Simpele validatie
               if (code.length >= 8) {
                 Quagga.stop();
                 setQuery(code);
@@ -337,11 +247,9 @@ export default function App() {
         }
       };
 
-      // NIEUWE FUNCTIE: Expliciet permissie vragen VOOR Quagga start
       const requestPermissionAndStart = async () => {
         setInitStatus("Toestemming vragen...");
 
-        // Check of browser mediaDevices ondersteunt
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           setScanError("Je browser ondersteunt geen camera toegang.");
           setInitStatus("");
@@ -349,15 +257,10 @@ export default function App() {
         }
 
         try {
-          // Stap 1: Forceer de browser prompt (met simpele constraints)
           const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "environment" },
           });
-
-          // Stap 2: Stop de stream direct (we wilden alleen de permissie)
           stream.getTracks().forEach((track) => track.stop());
-
-          // Stap 3: Start nu de scanner engine
           initQuagga();
         } catch (err: any) {
           console.error("Permission denied or camera error:", err);
@@ -372,12 +275,10 @@ export default function App() {
         }
       };
 
-      // Script injectie voor QuaggaJS CDN
       if (!(window as any).Quagga) {
         const script = document.createElement("script");
         script.src = "https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js";
         script.async = true;
-        // Als script geladen is, start permissie proces
         script.onload = requestPermissionAndStart;
         script.onerror = () => {
           setScanError("Kon scanner software niet laden. Check internet.");
@@ -412,13 +313,11 @@ export default function App() {
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col">
         <div className="relative flex-1 bg-black overflow-hidden flex flex-col items-center justify-center">
-          {/* Camera Container voor Quagga */}
           <div
             ref={scannerRef}
             className="absolute inset-0 w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full [&>canvas]:hidden"
           ></div>
 
-          {/* Status & Errors */}
           {initStatus && (
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white z-20 flex flex-col items-center bg-black/50 p-4 rounded-lg backdrop-blur-sm">
               <Loader2 className="animate-spin mb-2" size={32} />
@@ -453,7 +352,6 @@ export default function App() {
             </div>
           )}
 
-          {/* Scanning Overlay (Rood Lijntje) */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
             <div className="w-72 h-48 border-2 border-red-500/50 rounded-lg relative shadow-[0_0_0_100vmax_rgba(0,0,0,0.6)]">
               <div className="absolute top-1/2 left-0 w-full h-0.5 bg-red-500 animate-pulse shadow-[0_0_10px_rgba(255,0,0,0.8)]"></div>
@@ -471,7 +369,6 @@ export default function App() {
           </button>
         </div>
 
-        {/* Footer controls */}
         <div className="bg-gray-900 p-4 z-30 text-center border-t border-gray-800">
           <p className="text-gray-500 text-xs mb-2">Lukt het scannen niet?</p>
           <button onClick={handleSimulatedScan} className="text-blue-400 text-sm hover:underline font-medium">
@@ -578,12 +475,13 @@ export default function App() {
             <h1 className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
               <Disc className="text-blue-400" /> Vinyl Scout
             </h1>
+
             <div className="flex items-center gap-2 w-full md:w-auto">
               {!apiToken && !isDemoMode ? (
                 <div className="flex gap-2 w-full">
                   <input
                     type="text"
-                    placeholder="Plak API Token..."
+                    placeholder="Plak Discogs API Token..."
                     value={apiToken}
                     onChange={(e) => setApiToken(e.target.value)}
                     className="bg-gray-800 border border-gray-700 text-sm rounded px-3 py-2 w-full md:w-64 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -612,6 +510,7 @@ export default function App() {
               )}
             </div>
           </div>
+
           <div className="flex gap-6 text-sm font-medium border-b border-gray-800 pt-2">
             <button
               onClick={() => setActiveTab("search")}
@@ -619,7 +518,7 @@ export default function App() {
                 activeTab === "search" ? "border-blue-500 text-white" : "border-transparent text-gray-500 hover:text-gray-300"
               }`}
             >
-              Items
+              Zoeken
             </button>
             <button
               onClick={() => setActiveTab("collection")}
@@ -634,7 +533,6 @@ export default function App() {
       </header>
 
       <main className="max-w-5xl mx-auto p-4 md:p-6">
-        {/* --- ITEMS / SEARCH TAB --- */}
         {activeTab === "search" && (
           <div className="space-y-6">
             <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row gap-3">
@@ -652,7 +550,6 @@ export default function App() {
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-10 pr-12 py-3 focus:ring-2 focus:ring-blue-600 outline-none text-white placeholder-gray-500 transition-all"
                 />
 
-                {/* Scanner knop in de input */}
                 <button
                   type="button"
                   onClick={() => setIsScanning(true)}
@@ -688,7 +585,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Titel voor de sectie */}
             <div className="flex justify-between items-end pb-2 border-b border-gray-800">
               <h2 className="text-lg font-semibold text-gray-300">{query ? `Resultaten voor "${query}"` : "Trending / Nieuw"}</h2>
               <span className="text-xs text-gray-500">{searchPagination.items} items gevonden</span>
@@ -722,12 +618,10 @@ export default function App() {
               ))}
             </div>
 
-            {/* Pagination voor Search/Home */}
             <PaginationControls current={searchPagination.page} total={searchPagination.pages} onPageChange={handlePageChange} />
           </div>
         )}
 
-        {/* --- COLLECTION TAB --- */}
         {activeTab === "collection" && (
           <div>
             {collection.length === 0 ? (
@@ -753,17 +647,15 @@ export default function App() {
                     <div className="w-16 h-16 flex-shrink-0 bg-gray-800 rounded overflow-hidden">
                       <ImageFallback src={item.thumb || item.cover_image} alt={item.title} className="w-full h-full object-cover" />
                     </div>
+
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-gray-200 truncate">{item.title}</h3>
                       <div className="text-sm text-gray-500 flex flex-wrap gap-x-4">
                         <span>{item.year}</span>
-                        <span>
-                          {item.catno ||
-                            (item.labels && item.labels.length > 0 ? item.labels[0].name : null) ||
-                            (item.label && item.label.length > 0 ? item.label[0] : "Geen label")}
-                        </span>
+                        <span>{item.catno || item.label?.[0] || "Geen label"}</span>
                       </div>
                     </div>
+
                     <div className="flex gap-2">
                       <button
                         onClick={() => removeFromCollection(item.id)}
@@ -776,7 +668,6 @@ export default function App() {
                   </div>
                 ))}
 
-                {/* Pagination voor Collection */}
                 <PaginationControls current={collectionPage} total={collectionTotalPages} onPageChange={setCollectionPage} />
               </div>
             )}
